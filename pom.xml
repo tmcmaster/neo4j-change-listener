@@ -49,18 +49,17 @@
                 Shade plugin needed to package all the dependencies in one jar file.
                 If you don't need this just remove it
             -->
-<!--             <plugin>
+             <!--plugin>
               <artifactId>maven-shade-plugin</artifactId>
               <version>2.4.3</version>
               <executions>
                 <execution>
                   
-                      This config needed to prevent removal of META-INF data on package creation
-                 
+                
                   <configuration>
                           <filters>
                             <filter>
-                              <artifact>*:*</artifact>
+                              <artifact>*.*</artifact>
                               <excludes>
                                 <exclude>META-INF/*.SF</exclude>
                                 <exclude>META-INF/*.DSA</exclude>
@@ -76,7 +75,7 @@
                   </goals>
                 </execution>
               </executions>
-            </plugin> -->
+            </plugin-->
         </plugins>
     </build>
 
@@ -112,6 +111,23 @@
             <artifactId>guava</artifactId>
             <version>18.0</version>
         </dependency>
+        <dependency>
+		    <groupId>org.springframework.data</groupId>
+		    <artifactId>spring-data-redis</artifactId>
+		    <version>2.0.1.RELEASE</version>
+		</dependency>
+<!-- 		<dependency>
+		    <groupId>org.springframework.boot</groupId>
+		    <artifactId>spring-boot-starter-data-redis</artifactId>
+		    <version>2.0.0.M5</version>
+		</dependency> -->
+		<dependency>
+			<!-- <scope>runtime</scope> -->
+		    <groupId>redis.clients</groupId>
+		    <artifactId>jedis</artifactId>
+		    <version>2.9.0</version>
+		</dependency>
+				
         <!--
             This lib very often cause dependency collision so should be same in all plugins on you server
         -->

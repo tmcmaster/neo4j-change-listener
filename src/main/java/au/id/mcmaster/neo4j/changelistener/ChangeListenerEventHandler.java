@@ -7,9 +7,15 @@ import org.neo4j.graphdb.event.TransactionData;
 import org.neo4j.graphdb.event.TransactionEventHandler;
 import org.neo4j.graphdb.schema.ConstraintDefinition;
 import org.neo4j.graphdb.schema.ConstraintType;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+
+import redis.clients.jedis.JedisShardInfo;
+
 import com.google.common.collect.Lists;
 
 import java.util.*;
@@ -179,6 +185,23 @@ public class ChangeListenerEventHandler implements TransactionEventHandler<Strin
         catch (Exception e)
         {
         		logger.warning(e.getMessage());
+        }
+        
+        try
+        {
+			// configure the connection factory
+			JedisShardInfo sharedInfo = new JedisShardInfo("localhost",6379);
+			//JedisPoolConfig poolconfig = new JedisPoolConfig();;
+			RedisConnectionFactory connectionFactory = new JedisConnectionFactory(sharedInfo);			
+
+			// send message
+			StringRedisTemplate template = new StringRedisTemplate(connectionFactory);
+			System.out.println("Sending message to Redis");
+			template.convertAndSend("chat", "Hello from Redis: " + result);
+        }
+        catch (Exception e)
+        {
+        		e.printStackTrace();
         }
     }
 

@@ -14,6 +14,13 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 
+import au.id.mcmaster.neo4j.changelistener.dto.ChangeEvent;
+import au.id.mcmaster.neo4j.changelistener.dto.ChangeEventNodeAdded;
+import au.id.mcmaster.neo4j.changelistener.dto.ChangeEventNodeChanged;
+import au.id.mcmaster.neo4j.changelistener.dto.ChangeEventNodeDeleted;
+import au.id.mcmaster.neo4j.changelistener.dto.ChangeEventRelationshipAdded;
+import au.id.mcmaster.neo4j.changelistener.dto.ChangeEventRelationshipDeleted;
+import au.id.mcmaster.neo4j.changelistener.service.RedisService;
 import redis.clients.jedis.JedisShardInfo;
 
 import com.google.common.collect.Lists;
@@ -38,16 +45,18 @@ public class ChangeListenerEventHandler implements TransactionEventHandler<Strin
     private Boolean debug;
     private String somevar;
     private Map<String, List<String>> constraints = new HashMap<String, List<String>>();
-
+    private RedisService redisService;
     public ChangeListenerEventHandler()
     {
         debug("---- Creating the ExampleEventHandler : Constructor -----");
+        this.redisService = new RedisService();
     }
     
     public ChangeListenerEventHandler(GraphDatabaseService gds, Boolean debug, String somevar) {
         this.gds = gds;
         this.debug = debug;
         this.somevar = somevar;
+        this.redisService = new RedisService();
         debug("---- Creating the ExampleEventHandler : Constructor -----");
     }
 
@@ -169,6 +178,31 @@ public class ChangeListenerEventHandler implements TransactionEventHandler<Strin
 		return count;
     }
 
+    private void processChangeEvents(TransactionData transactionData)
+    {
+    		for (Node node : transactionData.createdNodes()) {
+    			ChangeEventNodeAdded changeEvent = new ChangeEventNodeAdded(node.getId());
+    			redisService.sendChangeEvent(changeEvent);
+        }
+    		for (Node node : transactionData.deletedNodes()) {
+    			ChangeEventNodeDeleted changeEvent = new ChangeEventNodeDeleted(node.getId());
+    			redisService.sendChangeEvent(changeEvent);
+        }
+    		for (Relationship relationship : transactionData.createdRelationships()) {
+    			ChangeEventRelationshipAdded changeEvent = new ChangeEventRelationshipAdded(relationship.getId());
+    			redisService.sendChangeEvent(changeEvent);
+        }
+    		for (Relationship relationship : transactionData.deletedRelationships()) {
+    			ChangeEventRelationshipDeleted changeEvent = new ChangeEventRelationshipDeleted(relationship.getId());
+    			redisService.sendChangeEvent(changeEvent);
+        }
+    		
+//    		ChangeEvent changeEvent = new ChangeEventNodeChanged(10);
+//		changeEvent.addProperty("a","b");
+//		changeEvent.addProperty("c","d");
+//		redisService.sendChangeEvent(changeEvent);
+    }
+    
     private void processCreatedNodes(String result, TransactionData transactionData) {
         debug("This updates was made: \n" + result);
         try
@@ -187,7 +221,7 @@ public class ChangeListenerEventHandler implements TransactionEventHandler<Strin
         		logger.warning(e.getMessage());
         }
         
-        try
+        /**try
         {
 			// configure the connection factory
 			JedisShardInfo sharedInfo = new JedisShardInfo("localhost",6379);
@@ -202,7 +236,7 @@ public class ChangeListenerEventHandler implements TransactionEventHandler<Strin
         catch (Exception e)
         {
         		e.printStackTrace();
-        }
+        }*/
     }
 
     /***************************
@@ -234,8 +268,12 @@ public class ChangeListenerEventHandler implements TransactionEventHandler<Strin
         Transaction tx = gds.beginTx();
         try {
             processCreatedNodes(result, transactionData);
+            processChangeEvents(transactionData);
             tx.success();
-        } finally {
+        } catch (Exception e) {
+        		e.printStackTrace();
+        }
+        finally {
             tx.close();
         }
         /*
